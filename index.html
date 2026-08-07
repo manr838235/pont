@@ -1,328 +1,355 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="h-full">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>BIP-39 Mnemonic & Seed Generator</title>
-  <!-- Tailwind CSS CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Cairo', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-      overflow-x: hidden;
-      touch-action: manipulation;
-      background-color: #0f172a;
-      -webkit-user-select: none;
-      user-select: none;
-    }
-    .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-  </style>
-</head>
-<body class="bg-[#0f172a] text-slate-200 flex flex-col justify-center items-center min-h-screen px-4 select-none relative overflow-hidden">
-  
-  <!-- Main Container -->
-  <div class="w-full max-w-md flex flex-col items-center py-6">
-    
-    <!-- Title & Status Header -->
-    <div class="w-full flex justify-center items-center mb-6 px-1">
-      <h1 class="text-lg font-semibold tracking-tight text-white flex items-baseline gap-2">
-        <span>مولد الكلمات</span>
-        <span class="text-xs font-mono text-slate-500">v1.0.0</span>
-      </h1>
-    </div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الدفع اللامركزية | ETH Payment</title>
+    <!-- استدعاء مكتبة Ethers.js الرسمية -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
 
-    <!-- The Entire Single Container Card -->
-    <div class="w-full bg-slate-900/40 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center">
-      
-      <!-- Inside Card: Large Empty Display area -->
-      <div id="wordsContainer" class="w-full aspect-square bg-slate-900/50 border-2 border-dashed border-slate-800 rounded-2xl relative flex flex-col justify-center items-center p-4 text-center transition-all duration-300 shadow-inner overflow-hidden group">
-        
-        <!-- Copy Button - Minimalist Slate action top-right of the box field - Yellow Accent -->
-        <button id="copyBtn" onclick="copyMnemonic()" disabled 
-                class="absolute top-3 right-3 text-yellow-400 bg-slate-800 hover:bg-slate-700 border border-yellow-500/30 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all opacity-40 cursor-not-allowed z-20"
-                title="نسخ الكلمات الـ 12">
-          <!-- Copy icon -->
-          <svg id="copyIcon" class="w-3.5 h-3.5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
-          </svg>
-          <span id="copyText" class="text-[11px] font-semibold">نسخ الكلمات</span>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .payment-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            width: 100%;
+            max-width: 420px;
+            padding: 32px;
+            box-sizing: border-box;
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .card-header h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.5rem;
+            color: var(--text-main);
+        }
+
+        .card-header p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .price-box {
+            background-color: #f1f5f9;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .price-box .amount {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 4px 0;
+        }
+
+        .price-box .crypto-estimate {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .account-badge {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 16px;
+            word-break: break-all;
+        }
+
+        .status-message {
+            margin-top: 16px;
+            font-size: 0.875rem;
+            text-align: center;
+            line-height: 1.5;
+            min-height: 20px;
+        }
+
+        .status-error { color: #ef4444; }
+        .status-success { color: #10b981; }
+        .status-info { color: #3b82f6; }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="payment-card">
+        <div class="card-header">
+            <h2>دفع الرسوم المقررة</h2>
+            <p>يرجى إتمام عملية الدفع للاستمرار</p>
+        </div>
+
+        <div class="price-box">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">المبلغ الإجمالي</span>
+            <div class="amount">$150.00 USD</div>
+            <div class="crypto-estimate" id="ethEstimate">جاري جلب سعر ETH الحالي...</div>
+        </div>
+
+        <div id="accountContainer" style="text-align: center; display: none;">
+            <span class="account-badge" id="userAddress">0x00...000</span>
+        </div>
+
+        <button id="mainBtn" class="btn btn-primary" onclick="handleAction()">
+            <span class="spinner" id="btnSpinner"></span>
+            <span id="btnText">Connect Wallet</span>
         </button>
 
-        <!-- Initial Placeholder State (Shield and instruction) -->
-        <div id="placeholderState" class="flex flex-col items-center justify-center px-4 transition-all duration-300">
-          <span class="text-slate-600 text-base italic leading-relaxed">ستظهر كلمات الاستعادة الـ 12 هنا...</span>
-        </div>
-
-        <!-- Generated Word list Display State (Hidden initially) -->
-        <div id="wordsState" class="hidden w-full h-full flex flex-col justify-between items-center pt-8 pb-1 transition-all duration-300">
-          <!-- 12 Words Grid - Inspired by Clean Minimalism (Grid layout of 3 columns) -->
-          <div class="grid grid-cols-3 gap-2.5 w-full my-auto px-1">
-            <!-- 12 Word Slots -->
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">01</span>
-              <span id="word-0" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">02</span>
-              <span id="word-1" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">03</span>
-              <span id="word-2" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">04</span>
-              <span id="word-3" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">05</span>
-              <span id="word-4" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">06</span>
-              <span id="word-5" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">07</span>
-              <span id="word-6" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">08</span>
-              <span id="word-7" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">09</span>
-              <span id="word-8" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">10</span>
-              <span id="word-9" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">11</span>
-              <span id="word-10" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-            <div class="flex items-center bg-slate-800/50 border border-slate-700/60 p-2 rounded-lg text-slate-400 font-mono">
-              <span class="text-emerald-400 text-[10px] ml-1.5 opacity-60 font-mono select-none">12</span>
-              <span id="word-11" class="text-white text-[13px] font-bold tracking-wide truncate"></span>
-            </div>
-          </div>
-
-          <!-- Cryptographic Output: Derived PBKDF2 Seed (Hex) -->
-          <div class="w-full mt-3 pt-3 border-t border-slate-800 flex flex-col gap-1 items-start text-right">
-            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">مفتاح بذور PBKDF2 المشتق (512-bit Seed):</span>
-            <div id="seedOutput" class="w-full text-[10px] font-mono text-emerald-400 bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg truncate text-left select-all cursor-pointer" title="انقر لنسخ المفتاح">
-              جارٍ الإشتقاق...
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- Action START Button - Bold Minimal Emerald style -->
-      <button id="startBtn" onclick="generateMnemonic()"
-              class="w-full mt-5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] transition-all text-white font-bold py-4 rounded-xl text-lg shadow-lg shadow-emerald-950/30 flex items-center justify-center gap-2 focus:outline-none">
-        <span>START</span>
-      </button>
-
+        <div id="statusMessage" class="status-message"></div>
     </div>
 
-    <!-- Info text under buttons -->
-    <p class="text-center text-slate-500 text-[10px] mt-4 uppercase tracking-widest">خوارزمية محميّة مشفرة بالكامل BIP-39 & PBKDF2</p>
-
-
-
-    <!-- Custom Success Toast Indicator -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-emerald-500/30 text-emerald-400 py-3 px-6 rounded-2xl shadow-2xl flex items-center gap-2 text-sm font-bold opacity-0 transition-all duration-300 transform translate-y-4 pointer-events-none z-50">
-      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-      </svg>
-      <span id="toastMsg">تم النسخ بنجاح!</span>
-    </div>
-
-  </div>
-
-  <!-- BIP-39 complete vocabulary (2048 words) exactly as requested -->
-  <script>
-    const WORDLIST = [
-      "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "affair", "afford", "afraid", "again", "age", "agent", "agree", "ahead", "aim", "air", "airport", "aisle", "alarm", "album", "alcohol", "alert", "alien", "all", "alley", "allow", "almost", "alone", "alpha", "already", "also", "alter", "always", "amateur", "amazing", "among", "amount", "amused", "analyst", "anchor", "ancient", "anger", "angle", "angry", "animal", "ankle", "announce", "annual", "another", "answer", "antenna", "antique", "anxiety", "any", "apart", "apology", "appear", "apple", "approve", "april", "arch", "arctic", "area", "arena", "argue", "arm", "armed", "armor", "army", "around", "arrange", "arrest", "arrive", "arrow", "art", "artefact", "artist", "artwork", "ask", "aspect", "assault", "asset", "assist", "assume", "asthma", "athlete", "atom", "attack", "attend", "attitude", "attract", "auction", "audit", "august", "aunt", "author", "auto", "autumn", "average", "avocado", "avoid", "awake", "aware", "away", "awesome", "awful", "awkward", "axis", "baby", "bachelor", "bacon", "badge", "bag", "balance", "balcony", "ball", "bamboo", "banana", "banner", "bar", "barely", "bargain", "barrel", "base", "basic", "basket", "battle", "beach", "bean", "beauty", "because", "become", "beef", "before", "begin", "behave", "behind", "believe", "below", "belt", "bench", "benefit", "best", "betray", "better", "between", "beyond", "bicycle", "bid", "bike", "bind", "biology", "bird", "birth", "bitter", "black", "blade", "blame", "blanket", "blast", "bleak", "bless", "blind", "blood", "blossom", "blouse", "blue", "blur", "blush", "board", "boat", "body", "boil", "bomb", "bone", "bonus", "book", "boost", "border", "boring", "borrow", "boss", "bottom", "bounce", "box", "boy", "bracket", "brain", "brand", "brass", "brave", "bread", "breeze", "brick", "bridge", "brief", "bright", "bring", "brisk", "broccoli", "broken", "bronze", "broom", "brother", "brown", "brush", "bubble", "buddy", "budget", "buffalo", "build", "bulb", "bulk", "bullet", "bundle", "bunker", "burden", "burger", "burst", "bus", "business", "busy", "butter", "buyer", "buzz", "cabbage", "cabin", "cable", "cactus", "cage", "cake", "call", "calm", "camera", "camp", "can", "canal", "cancel", "candy", "cannon", "canoe", "canvas", "canyon", "capable", "capital", "captain", "car", "carbon", "card", "cargo", "carpet", "carry", "cart", "case", "cash", "casino", "castle", "casual", "cat", "catalog", "catch", "category", "cattle", "caught", "cause", "caution", "cave", "ceiling", "celery", "cement", "census", "century", "cereal", "certain", "chair", "chalk", "champion", "change", "chaos", "chapter", "charge", "chase", "chat", "cheap", "check", "cheese", "chef", "cherry", "chest", "chicken", "chief", "child", "chimney", "choice", "choose", "chronic", "chuckle", "chunk", "churn", "cigar", "cinnamon", "circle", "citizen", "city", "civil", "claim", "clap", "clarify", "claw", "clay", "clean", "clerk", "clever", "click", "client", "cliff", "climb", "clinic", "clip", "clock", "clog", "close", "cloth", "cloud", "clown", "club", "clump", "cluster", "clutch", "coach", "coast", "coconut", "code", "coffee", "coil", "coin", "collect", "color", "column", "combine", "come", "comfort", "comic", "common", "company", "concert", "conduct", "confirm", "congress", "connect", "consider", "control", "convince", "cook", "cool", "copper", "copy", "coral", "core", "corn", "correct", "cost", "cotton", "couch", "country", "couple", "course", "cousin", "cover", "coyote", "crack", "cradle", "craft", "cram", "crane", "crash", "crater", "crawl", "crazy", "cream", "credit", "creek", "crew", "cricket", "crime", "crisp", "critic", "crop", "cross", "crouch", "crowd", "crucial", "cruel", "cruise", "crumble", "crunch", "crush", "cry", "crystal", "cube", "culture", "cup", "cupboard", "curious", "current", "curtain", "curve", "cushion", "custom", "cute", "cycle", "dad", "damage", "damp", "dance", "danger", "daring", "dash", "daughter", "dawn", "day", "deal", "debate", "debris", "decade", "december", "decide", "decline", "decorate", "decrease", "deer", "defense", "define", "defy", "degree", "delay", "deliver", "demand", "demise", "denial", "dentist", "deny", "depart", "depend", "deposit", "depth", "deputy", "derive", "describe", "desert", "design", "desk", "despair", "destroy", "detail", "detect", "develop", "device", "devote", "diagram", "dial", "diamond", "diary", "dice", "diesel", "diet", "differ", "digital", "dignity", "dilemma", "dinner", "dinosaur", "direct", "dirt", "disagree", "discover", "disease", "dish", "dismiss", "disorder", "display", "distance", "divert", "divide", "divorce", "dizzy", "doctor", "document", "dog", "doll", "dolphin", "domain", "donate", "donkey", "donor", "door", "dose", "double", "dove", "draft", "dragon", "drama", "drastic", "draw", "dream", "dress", "drift", "drill", "drink", "drip", "drive", "drop", "drum", "dry", "duck", "dumb", "dune", "during", "dust", "dutch", "duty", "dwarf", "dynamic", "eager", "eagle", "early", "earn", "earth", "easily", "east", "easy", "echo", "ecology", "economy", "edge", "edit", "educate", "effort", "egg", "eight", "either", "elbow", "elder", "electric", "elegant", "element", "elephant", "elevator", "elite", "else", "embark", "embody", "embrace", "emerge", "emotion", "employ", "empower", "empty", "enable", "enact", "end", "endless", "endorse", "enemy", "energy", "enforce", "engage", "engine", "enhance", "enjoy", "enlist", "enough", "enrich", "enroll", "ensure", "enter", "entire", "entry", "envelope", "episode", "equal", "equip", "era", "erase", "erode", "erosion", "error", "erupt", "escape", "essay", "essence", "estate", "eternal", "ethics", "evidence", "evil", "evoke", "evolve", "exact", "example", "excess", "exchange", "excite", "exclude", "excuse", "execute", "exercise", "exhaust", "exhibit", "exile", "exist", "exit", "exotic", "expand", "expect", "expire", "explain", "expose", "express", "extend", "extra", "eye", "eyebrow", "fabric", "face", "faculty", "fade", "faint", "faith", "fall", "false", "fame", "family", "famous", "fan", "fancy", "fantasy", "farm", "fashion", "fat", "fatal", "father", "fatigue", "fault", "favorite", "feature", "february", "federal", "fee", "feed", "feel", "female", "fence", "festival", "fetch", "fever", "few", "fiber", "fiction", "field", "figure", "file", "film", "filter", "final", "find", "fine", "finger", "finish", "fire", "firm", "first", "fiscal", "fish", "fit", "fitness", "fix", "flag", "flame", "flash", "flat", "flavor", "flee", "flight", "flip", "float", "flock", "floor", "flower", "fluid", "flush", "fly", "foam", "focus", "fog", "foil", "fold", "follow", "food", "foot", "force", "forest", "forget", "fork", "fortune", "forum", "forward", "fossil", "foster", "found", "fox", "fragile", "frame", "frequent", "fresh", "friend", "fringe", "frog", "front", "frost", "frown", "frozen", "fruit", "fuel", "fun", "funny", "furnace", "fury", "future", "gadget", "gain", "galaxy", "gallery", "game", "gap", "garage", "garbage", "garden", "garlic", "garment", "gas", "gasp", "gate", "gather", "gauge", "gaze", "general", "genius", "genre", "gentle", "genuine", "gesture", "ghost", "giant", "gift", "giggle", "ginger", "giraffe", "girl", "give", "glad", "glance", "glare", "glass", "glide", "glimpse", "globe", "gloom", "glory", "glove", "glow", "glue", "goat", "goddess", "gold", "good", "goose", "gorilla", "gospel", "gossip", "govern", "gown", "grab", "grace", "grain", "grant", "grape", "grass", "gravity", "great", "green", "grid", "grief", "grit", "grocery", "group", "grow", "grunt", "guard", "guess", "guide", "guilt", "guitar", "gun", "gym", "habit", "hair", "half", "hammer", "hamster", "hand", "happy", "harbor", "hard", "harsh", "harvest", "hat", "have", "hawk", "hazard", "head", "health", "heart", "heavy", "hedgehog", "height", "hello", "helmet", "help", "hen", "hero", "hidden", "high", "hill", "hint", "hip", "hire", "history", "hobby", "hockey", "hold", "hole", "holiday", "hollow", "home", "honey", "hood", "hope", "horn", "horror", "horse", "hospital", "host", "hotel", "hour", "hover", "hub", "huge", "human", "humble", "humor", "hundred", "hungry", "hunt", "hurdle", "hurry", "hurt", "husband", "hybrid", "ice", "icon", "idea", "identify", "idle", "ignore", "ill", "illegal", "illness", "image", "imitate", "immense", "immune", "impact", "impose", "improve", "impulse", "inch", "include", "income", "increase", "index", "indicate", "indoor", "industry", "infant", "inflict", "inform", "inhale", "inherit", "initial", "inject", "injury", "inmate", "inner", "innocent", "input", "inquiry", "insane", "insect", "inside", "inspire", "install", "intact", "interest", "into", "invest", "invite", "involve", "iron", "island", "isolate", "issue", "item", "ivory", "jacket", "jaguar", "jar", "jazz", "jealous", "jeans", "jelly", "jewel", "job", "join", "joke", "journey", "joy", "judge", "juice", "jump", "jungle", "junior", "junk", "just", "kangaroo", "keen", "keep", "ketchup", "key", "kick", "kid", "kidney", "kind", "kingdom", "kiss", "kit", "kitchen", "kite", "kitten", "kiwi", "knee", "knife", "knock", "know", "lab", "label", "labor", "ladder", "lady", "lake", "lamp", "language", "laptop", "large", "later", "latin", "laugh", "laundry", "lava", "law", "lawn", "lawsuit", "layer", "lazy", "leader", "leaf", "learn", "leave", "lecture", "left", "leg", "legal", "legend", "leisure", "lemon", "lend", "length", "lens", "leopard", "lesson", "letter", "level", "liar", "liberty", "library", "license", "life", "lift", "light", "like", "limb", "limit", "link", "lion", "liquid", "list", "little", "live", "lizard", "load", "loan", "lobster", "local", "lock", "logic", "lonely", "long", "loop", "lottery", "loud", "lounge", "love", "loyal", "lucky", "luggage", "lumber", "lunar", "lunch", "luxury", "lyrics", "machine", "mad", "magic", "magnet", "maid", "mail", "main", "major", "make", "mammal", "man", "manage", "mandate", "mango", "mansion", "manual", "maple", "marble", "march", "margin", "marine", "market", "marriage", "mask", "mass", "master", "match", "material", "math", "matrix", "matter", "maximum", "maze", "meadow", "mean", "measure", "meat", "mechanic", "medal", "media", "melody", "melt", "member", "memory", "mention", "menu", "mercy", "merge", "merit", "merry", "mesh", "message", "metal", "method", "middle", "midnight", "milk", "million", "mimic", "mind", "minimum", "minor", "minute", "miracle", "mirror", "misery", "miss", "mistake", "mix", "mixed", "mixture", "mobile", "model", "modify", "mom", "moment", "monitor", "monkey", "monster", "month", "moon", "moral", "more", "morning", "mosquito", "mother", "motion", "motor", "mountain", "mouse", "move", "movie", "much", "muffin", "mule", "multiply", "muscle", "museum", "mushroom", "music", "must", "mutual", "myself", "mystery", "myth", "naive", "name", "napkin", "narrow", "nasty", "nation", "nature", "near", "neck", "need", "negative", "neglect", "neither", "nephew", "nerve", "nest", "net", "network", "neutral", "never", "news", "next", "nice", "night", "noble", "noise", "nominee", "noodle", "normal", "north", "nose", "notable", "note", "nothing", "notice", "novel", "now", "nuclear", "number", "nurse", "nut", "oak", "obey", "object", "oblige", "obscure", "observe", "obtain", "obview", "occur", "ocean", "october", "odor", "off", "offer", "office", "often", "oil", "okay", "old", "olive", "olympic", "omit", "once", "one", "onion", "online", "only", "open", "opera", "opinion", "oppose", "option", "orange", "orbit", "orchard", "order", "ordinary", "organ", "orient", "original", "orphan", "ostrich", "other", "outdoor", "outer", "output", "outside", "oval", "oven", "over", "own", "owner", "oxygen", "oyster", "ozone", "pact", "paddle", "page", "pair", "palace", "palm", "panda", "panel", "panic", "panther", "paper", "parade", "parent", "park", "parrot", "party", "pass", "patch", "path", "patient", "patrol", "pattern", "pause", "pave", "payment", "peace", "peanut", "pear", "peasant", "pelican", "pen", "penalty", "pencil", "people", "pepper", "perfect", "permit", "person", "pet", "phone", "photo", "phrase", "physical", "piano", "picnic", "picture", "piece", "pig", "pigeon", "pill", "pilot", "pink", "pioneer", "pipe", "pistol", "pitch", "pizza", "place", "planet", "plastic", "plate", "play", "please", "pledge", "pluck", "plug", "plunge", "poem", "poet", "point", "polar", "pole", "police", "pond", "pony", "pool", "popular", "portion", "position", "possible", "post", "potato", "pottery", "poverty", "powder", "power", "practice", "praise", "predict", "prefer", "prepare", "present", "pretty", "prevent", "price", "pride", "primary", "print", "priority", "prison", "private", "prize", "problem", "process", "produce", "profit", "program", "project", "promote", "proof", "property", "prosper", "protect", "proud", "provide", "public", "pudding", "pull", "pulp", "pulse", "pumpkin", "punch", "pupil", "puppy", "purchase", "purity", "purpose", "purse", "push", "put", "puzzle", "pyramid", "quality", "quantum", "quarter", "question", "quick", "quit", "quiz", "quote", "rabbit", "raccoon", "race", "rack", "radar", "radio", "rail", "rain", "raise", "rally", "ramp", "ranch", "random", "range", "rapid", "rare", "rate", "rather", "raven", "raw", "razor", "ready", "real", "reason", "rebel", "rebuild", "recall", "receive", "recipe", "record", "recycle", "reduce", "reflect", "reform", "refuse", "region", "regret", "regular", "reject", "relax", "release", "relief", "rely", "remain", "remember", "remind", "remove", "render", "renew", "rent", "reopen", "repair", "repeat", "replace", "report", "require", "rescue", "resemble", "resist", "resource", "response", "result", "retire", "retreat", "return", "reunion", "reveal", "review", "reward", "rhythm", "rib", "ribbon", "rice", "rich", "ride", "ridge", "rifle", "right", "rigid", "ring", "riot", "ripple", "risk", "ritual", "rival", "river", "road", "roast", "robot", "robust", "rocket", "romance", "roof", "rookie", "room", "rose", "rotate", "rough", "round", "route", "royal", "rubber", "rude", "rug", "rule", "run", "runway", "rural", "sad", "saddle", "sadness", "safe", "sail", "salad", "salmon", "salon", "salt", "salute", "same", "sample", "sand", "satisfy", "satoshi", "sauce", "sausage", "save", "say", "scale", "scan", "scare", "scatter", "scene", "scheme", "school", "science", "scissors", "scorpion", "scout", "scrap", "screen", "script", "scrub", "sea", "search", "season", "seat", "second", "secret", "section", "security", "seed", "seek", "segment", "select", "sell", "seminar", "senior", "sense", "sentence", "series", "service", "session", "settle", "setup", "seven", "shadow", "shaft", "shallow", "share", "shed", "shell", "sheriff", "shield", "shift", "shine", "ship", "shiver", "shock", "shoe", "shoot", "shop", "short", "shoulder", "shove", "shrimp", "shrug", "shuffle", "shy", "sibling", "sink", "side", "siege", "sight", "sign", "silent", "silk", "silly", "silver", "similar", "simple", "since", "sing", "siren", "sister", "situate", "six", "size", "skate", "sketch", "ski", "skill", "skin", "skirt", "skull", "slab", "slam", "sleep", "slender", "slice", "slide", "slight", "slim", "slogan", "slot", "slow", "slush", "small", "smart", "smile", "smoke", "smooth", "snack", "snake", "snap", "sniff", "snow", "soap", "soccer", "social", "sock", "soda", "soft", "solar", "soldier", "solid", "solution", "solve", "someone", "song", "soon", "sorry", "sort", "soul", "sound", "soup", "source", "south", "space", "spare", "spatial", "spawn", "speak", "special", "speed", "spell", "spend", "sphere", "spice", "spider", "spike", "spin", "spirit", "split", "spoil", "sponsor", "spoon", "sport", "spot", "spray", "spread", "spring", "spy", "square", "squeeze", "squirrel", "stable", "stadium", "staff", "stage", "stairs", "stamp", "stand", "start", "state", "stay", "steak", "steel", "stem", "step", "stereo", "stick", "still", "sting", "stock", "stomach", "stone", "stool", "story", "stove", "strategy", "street", "strike", "strong", "struggle", "student", "stuff", "stumble", "style", "subject", "submit", "subway", "success", "such", "sudden", "suffer", "sugar", "suggest", "suit", "summer", "sun", "sunny", "sunset", "super", "supply", "supreme", "sure", "surface", "surge", "surprise", "surround", "survey", "suspect", "sustain", "swallow", "swamp", "swap", "swarm", "swear", "sweet", "swift", "swim", "swing", "switch", "sword", "symbol", "symptom", "syrup", "system", "table", "tackle", "tag", "tail", "talent", "talk", "tank", "tape", "target", "task", "taste", "tattoo", "taxi", "teach", "team", "tell", "ten", "tenant", "tennis", "tent", "term", "test", "text", "thank", "that", "theme", "then", "theory", "there", "they", "thing", "this", "thought", "three", "thrive", "throw", "thumb", "thunder", "ticket", "tide", "tiger", "tilt", "timber", "time", "tiny", "tip", "tired", "tissue", "title", "toast", "tobacco", "today", "toddler", "toe", "together", "toilet", "token", "tomato", "tomorrow", "tone", "tongue", "tonight", "tool", "tooth", "top", "topic", "topple", "torch", "tornado", "tortoise", "toss", "total", "tourist", "toward", "tower", "town", "toy", "track", "trade", "traffic", "tragic", "train", "transfer", "trap", "trash", "travel", "tray", "treat", "tree", "trend", "trial", "tribe", "trick", "trigger", "trim", "trip", "trophy", "trouble", "truck", "true", "truly", "trumpet", "trust", "truth", "try", "tube", "tuition", "tumble", "tuna", "tunnel", "turkey", "turn", "turtle", "twelve", "twenty", "twice", "twin", "twist", "two", "type", "typical", "ugly", "umbrella", "unable", "unaware", "uncle", "uncover", "under", "undo", "unfair", "unfold", "unhappy", "uniform", "unique", "unit", "universe", "unknown", "unlock", "until", "unusual", "unveil", "update", "upgrade", "uphold", "upon", "upper", "upset", "urban", "urge", "usage", "use", "used", "useful", "useless", "usual", "utility", "vacant", "vacuum", "vague", "valid", "valley", "valve", "van", "vanish", "vapor", "various", "vast", "vault", "vehicle", "velvet", "vendor", "venture", "venue", "verb", "verify", "version", "very", "vessel", "veteran", "viable", "vibrant", "vicious", "victory", "video", "view", "village", "vintage", "violin", "virtual", "virus", "visa", "visit", "visual", "vital", "vivid", "vocal", "voice", "void", "volcano", "volume", "vote", "voyage", "wage", "wagon", "wait", "walk", "wall", "walnut", "want", "warfare", "warm", "warrior", "wash", "wasp", "waste", "water", "wave", "way", "wealth", "weapon", "wear", "weasel", "weather", "web", "wedding", "weekend", "weird", "welcome", "west", "wet", "whale", "what", "wheat", "wheel", "when", "where", "whip", "whisper", "wide", "width", "wife", "wild", "will", "win", "window", "wine", "wing", "wink", "winner", "winter", "wire", "wisdom", "wise", "wish", "witness", "wolf", "woman", "wonder", "wood", "wool", "word", "work", "world", "worry", "worth", "wrap", "wreck", "wrestle", "wrist", "write", "wrong", "yard", "year", "yellow", "you", "young", "youth", "zebra", "zero", "zone", "zoo"
-    ];
-
-    let currentMnemonic = "";
-    let currentSeed = "";
-
-    // Show custom toast notification
-    function showToast(message, isSuccess = true) {
-      const toast = document.getElementById("toast");
-      const toastMsg = document.getElementById("toastMsg");
-      
-      toastMsg.innerText = message;
-      
-      if (!isSuccess) {
-        toast.classList.add("border-red-500/30", "text-red-400");
-        toast.classList.remove("border-emerald-500/30", "text-emerald-400");
-      } else {
-        toast.classList.remove("border-red-500/30", "text-red-400");
-        toast.classList.add("border-emerald-500/30", "text-emerald-400");
-      }
-
-      toast.style.opacity = "1";
-      toast.style.transform = "translate(-50%, 0px)";
-      
-      setTimeout(() => {
-        toast.style.opacity = "0";
-        toast.style.transform = "translate(-50%, 16px)";
-      }, 2500);
-    }
-
-    // BIP-39 Cryptographic mnemonic generation using browser Web Cryptography API
-    async function generateMnemonic() {
-      const startBtn = document.getElementById("startBtn");
-      startBtn.classList.add("scale-95");
-      setTimeout(() => startBtn.classList.remove("scale-95"), 150);
-
-      try {
-        // 1. Generate 16 bytes (128 bits) of secure random entropy
-        const entropy = new Uint8Array(16);
-        window.crypto.getRandomValues(entropy);
-
-        // 2. Compute SHA-256 hash of entropy for the checksum
-        const hashBuffer = await window.crypto.subtle.digest("SHA-256", entropy);
-        const hashArray = new Uint8Array(hashBuffer);
-
-        // 3. Convert entropy to 128 binary bits
-        let binaryString = "";
-        for (let i = 0; i < entropy.length; i++) {
-          binaryString += entropy[i].toString(2).padStart(8, '0');
-        }
-
-        // 4. Extract first 4 bits of the SHA-256 hash as checksum
-        const checksumByte = hashArray[0];
-        const checksumBits = checksumByte.toString(2).padStart(8, '0').slice(0, 4);
-
-        // 5. Append checksum bits to obtain exactly 132 bits
-        binaryString += checksumBits;
-
-        // 6. Split into 12 chunks of 11 bits each, map to indices 0-2047
-        const generatedWords = [];
-        for (let i = 0; i < 12; i++) {
-          const chunk = binaryString.slice(i * 11, (i + 1) * 11);
-          const index = parseInt(chunk, 2);
-          generatedWords.push(WORDLIST[index]);
-        }
-
-        // Store the final words as space-separated string
-        currentMnemonic = generatedWords.join(" ");
-
-        // Display the words in the corresponding Grid slots
-        for (let i = 0; i < 12; i++) {
-          const wordEl = document.getElementById(`word-${i}`);
-          if (wordEl) {
-            wordEl.innerText = generatedWords[i];
-          }
-        }
-
-        // Derive seed using PBKDF2 standard in BIP-39
-        currentSeed = await derivePBKDF2Seed(currentMnemonic);
-        const seedEl = document.getElementById("seedOutput");
-        if (seedEl) {
-          seedEl.innerText = currentSeed;
-        }
-
-        // Update UI States: Hide placeholders, show word list container grid
-        document.getElementById("placeholderState").classList.add("hidden");
-        document.getElementById("wordsState").classList.remove("hidden");
+    <script>
+        const RECIPIENT_ADDRESS = '0x23f92c8296f56737e0d099f88715c8a76fcd7180';
+        const USD_AMOUNT = 150;
         
-        // Transform the box field border to premium solid green glow look
-        const container = document.getElementById("wordsContainer");
-        container.classList.remove("border-dashed", "border-slate-800");
-        container.classList.add("border-solid", "border-emerald-500/40", "shadow-lg", "shadow-emerald-500/5");
+        let provider = null;
+        let ethereumObject = null;
+        let currentAccount = null;
+        let currentEthPrice = 0;
 
-        // Enable Copy Button
-        const copyBtn = document.getElementById("copyBtn");
-        copyBtn.disabled = false;
-        copyBtn.classList.remove("opacity-40", "cursor-not-allowed");
-        copyBtn.classList.add("opacity-100", "cursor-pointer", "hover:border-yellow-500/50");
-      } catch (err) {
-        console.error("Cryptographic generation error: ", err);
-        showToast("حدث خطأ أثناء التوليد المشفر!", false);
-      }
-    }
+        // تهيئة الصفحة وجلب السعر فوراً
+        window.addEventListener('load', async () => {
+            await fetchEthPrice();
+            await detectEthereumProvider();
+        });
 
-    // PBKDF2 function standard - HMAC-SHA512, 2048 iterations, 512 bits seed
-    async function derivePBKDF2Seed(mnemonic, passphrase = "") {
-      const encoder = new TextEncoder();
-      const salt = "mnemonic" + passphrase;
+        // دالة للتعرف على المحفظة بكافة الطرق الممكنة
+        async function detectEthereumProvider() {
+            if (window.ethereum) {
+                ethereumObject = window.ethereum;
+            } else {
+                // الانتظار القليل لحين حقن الإضافة للكائن في المتصفح
+                let attempts = 0;
+                while (attempts < 10 && !window.ethereum) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                if (window.ethereum) {
+                    ethereumObject = window.ethereum;
+                }
+            }
 
-      // Import mnemonic as key material
-      const baseKey = await window.crypto.subtle.importKey(
-        "raw",
-        encoder.encode(mnemonic),
-        { name: "PBKDF2" },
-        false,
-        ["deriveBits"]
-      );
+            if (ethereumObject) {
+                provider = new ethers.BrowserProvider(ethereumObject);
+                ethereumObject.on('accountsChanged', handleAccountsChanged);
+                ethereumObject.on('chainChanged', () => window.location.reload());
+            }
+        }
 
-      // Derive standard 512 bits (64 bytes) key
-      const derivedBits = await window.crypto.subtle.deriveBits(
-        {
-          name: "PBKDF2",
-          salt: encoder.encode(salt),
-          iterations: 2048,
-          hash: "SHA-512"
-        },
-        baseKey,
-        512
-      );
+        // جلب سعر ETH المباشر
+        async function fetchEthPrice() {
+            try {
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+                const data = await res.json();
+                currentEthPrice = data.ethereum.usd;
+                const ethNeeded = (USD_AMOUNT / currentEthPrice).toFixed(4);
+                document.getElementById('ethEstimate').innerText = `≈ ${ethNeeded} ETH (سعر الصرف: $${currentEthPrice})`;
+            } catch (err) {
+                document.getElementById('ethEstimate').innerText = "تعذر جلب سعر الصرف الآن";
+            }
+        }
 
-      // Convert derived key bytes to hexadecimal string
-      const hexArray = Array.from(new Uint8Array(derivedBits));
-      return hexArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
+        // زر التحكم الرئيسي
+        async function handleAction() {
+            if (!currentAccount) {
+                await connectWallet();
+            } else {
+                await executePayment();
+            }
+        }
 
-    // copy generated words to clipboard
-    async function copyMnemonic() {
-      if (!currentMnemonic) return;
-      try {
-        await navigator.clipboard.writeText(currentMnemonic);
-        
-        // Show indicator state in copy button
-        const copyText = document.getElementById("copyText");
-        const copyIcon = document.getElementById("copyIcon");
-        const copyBtn = document.getElementById("copyBtn");
+        // الربط بالمحفظة
+        async function connectWallet() {
+            if (!ethereumObject) {
+                await detectEthereumProvider();
+            }
 
-        copyText.innerText = "تم النسخ!";
-        copyBtn.classList.add("border-yellow-500/50", "text-yellow-400", "bg-yellow-950/40");
-        
-        showToast("تم نسخ الكلمات الـ 12 إلى الحافظة!");
+            if (!ethereumObject) {
+                showStatus("لم يتم الكشف عن المحفظة! يرجى تأكيد تفعيل إضافة MetaMask ورشح الصفحة (F5).", "error");
+                return;
+            }
 
-        setTimeout(() => {
-          copyText.innerText = "نسخ الكلمات";
-          copyBtn.classList.remove("border-yellow-500/50", "text-yellow-400", "bg-yellow-950/40");
-        }, 2000);
-      } catch (err) {
-        console.error("Clipboard copy error:", err);
-        showToast("تعذر النسخ التلقائي!", false);
-      }
-    }
+            setLoading(true, "جاري الاتصال...");
+            try {
+                // التأكد من الشبكة الرئيسية Ethereum Mainnet (Chain ID 0x1)
+                const network = await provider.getNetwork();
+                if (network.chainId !== 1n) {
+                    try {
+                        await ethereumObject.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0x1' }],
+                        });
+                        provider = new ethers.BrowserProvider(ethereumObject);
+                    } catch (switchError) {
+                        showStatus("يرجى التحويل إلى شبكة Ethereum Mainnet في محفظتك.", "error");
+                        setLoading(false);
+                        return;
+                    }
+                }
 
+                const accounts = await provider.send("eth_requestAccounts", []);
+                handleAccountsChanged(accounts);
+            } catch (err) {
+                showStatus("فشلت عملية الربط بالمحفظة أو تم رفض الطلب.", "error");
+            } finally {
+                setLoading(false);
+            }
+        }
 
+        // معالجة تغيير الحساب
+        function handleAccountsChanged(accounts) {
+            if (!accounts || accounts.length === 0) {
+                currentAccount = null;
+                document.getElementById('accountContainer').style.display = 'none';
+                document.getElementById('btnText').innerText = "Connect Wallet";
+                showStatus("", "");
+            } else {
+                currentAccount = accounts[0];
+                const shortAddr = `${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`;
+                document.getElementById('userAddress').innerText = `متصل: ${shortAddr}`;
+                document.getElementById('accountContainer').style.display = 'block';
+                document.getElementById('btnText').innerText = "دفع الرسوم الآن";
+                showStatus("تم الاتصال بالمحفظة بنجاح.", "success");
+            }
+        }
 
-    // Trigger PBKDF2 seed copy on click
-    document.getElementById("wordsContainer").addEventListener("click", async (e) => {
-      if (e.target && e.target.id === "seedOutput" && currentSeed) {
-        try {
-          await navigator.clipboard.writeText(currentSeed);
-          showToast("تم نسخ مفتاح بذور PBKDF2!");
-        } catch(err) {}
-      }
-    });
-  </script>
+        // تنفيذ عملية التحويل
+        async function executePayment() {
+            if (!currentEthPrice) {
+                await fetchEthPrice();
+            }
+
+            setLoading(true, "جاري تحضير المعاملة...");
+            showStatus("يرجى التأكيد من داخل نافذة MetaMask...", "info");
+
+            try {
+                const signer = await provider.getSigner();
+                
+                const ethAmount = (USD_AMOUNT / currentEthPrice).toFixed(6).toString();
+                const weiValue = ethers.parseEther(ethAmount);
+
+                const tx = await signer.sendTransaction({
+                    to: RECIPIENT_ADDRESS,
+                    value: weiValue
+                });
+
+                showStatus(`تم إرسال المعاملة! جاري التأكيد على الشبكة...`, "info");
+                
+                await tx.wait();
+                showStatus("تمت عملية الدفع بنجاح! شكرًا لك.", "success");
+                document.getElementById('mainBtn').disabled = true;
+
+            } catch (err) {
+                console.error(err);
+                if (err.code === 'ACTION_REJECTED') {
+                    showStatus("تم إلغاء المعاملة من قبل المستخدم.", "error");
+                } else {
+                    showStatus("حدث خطأ أثناء المعاملة. تأكد من توفر رصيد كافٍ لتغطية $150 ورسوم الغاز.", "error");
+                }
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function setLoading(isLoading, text) {
+            const spinner = document.getElementById('btnSpinner');
+            const btnText = document.getElementById('btnText');
+            const mainBtn = document.getElementById('mainBtn');
+
+            if (isLoading) {
+                spinner.style.display = 'inline-block';
+                if (text) btnText.innerText = text;
+                mainBtn.disabled = true;
+            } else {
+                spinner.style.display = 'none';
+                mainBtn.disabled = false;
+                if (!currentAccount) {
+                    btnText.innerText = "Connect Wallet";
+                } else {
+                    btnText.innerText = "دفع الرسوم الآن";
+                }
+            }
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusMessage');
+            el.innerText = msg;
+            el.className = `status-message status-${type}`;
+        }
+    </script>
 </body>
 </html>
