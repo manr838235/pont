@@ -181,18 +181,17 @@
         let currentAccount = null;
         let currentEthPrice = 0;
 
-        // تهيئة الصفحة وجلب السعر فوراً
+        // تهيئة الصفحة
         window.addEventListener('load', async () => {
             await fetchEthPrice();
             await detectEthereumProvider();
         });
 
-        // دالة للتعرف على المحفظة بكافة الطرق الممكنة
+        // الكشف عن المحفظة
         async function detectEthereumProvider() {
             if (window.ethereum) {
                 ethereumObject = window.ethereum;
             } else {
-                // الانتظار القليل لحين حقن الإضافة للكائن في المتصفح
                 let attempts = 0;
                 while (attempts < 10 && !window.ethereum) {
                     await new Promise(resolve => setTimeout(resolve, 100));
@@ -210,7 +209,7 @@
             }
         }
 
-        // جلب سعر ETH المباشر
+        // جلب سعر ETH
         async function fetchEthPrice() {
             try {
                 const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
@@ -223,7 +222,7 @@
             }
         }
 
-        // زر التحكم الرئيسي
+        // التحكم في الإجراء الرئيسي
         async function handleAction() {
             if (!currentAccount) {
                 await connectWallet();
@@ -232,45 +231,52 @@
             }
         }
 
-        // الربط بالمحفظة
+        // الاتصال بالمحفظة والتحويل لشبكة Sepolia
         async function connectWallet() {
             if (!ethereumObject) {
                 await detectEthereumProvider();
             }
 
             if (!ethereumObject) {
-                showStatus("لم يتم الكشف عن المحفظة! يرجى تأكيد تفعيل إضافة MetaMask ورشح الصفحة (F5).", "error");
+                showStatus("لم يتم الكشف عن المحفظة!", "error");
                 return;
             }
 
             setLoading(true, "جاري الاتصال...");
             try {
-                // التأكد من الشبكة الرئيسية Ethereum Mainnet (Chain ID 0x1)
-                const network = await provider.getNetwork();
-                if (network.chainId !== 1n) {
-                    try {
+                const SEPOLIA_CHAIN_ID = '0xaa36a7';
+                
+                try {
+                    await ethereumObject.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: SEPOLIA_CHAIN_ID }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
                         await ethereumObject.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x1' }],
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: SEPOLIA_CHAIN_ID,
+                                chainName: 'Sepolia Test Network',
+                                nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://rpc.sepolia.org'],
+                                blockExplorerUrls: ['https://sepolia.etherscan.io']
+                            }],
                         });
-                        provider = new ethers.BrowserProvider(ethereumObject);
-                    } catch (switchError) {
-                        showStatus("يرجى التحويل إلى شبكة Ethereum Mainnet في محفظتك.", "error");
-                        setLoading(false);
-                        return;
                     }
                 }
 
+                provider = new ethers.BrowserProvider(ethereumObject);
                 const accounts = await provider.send("eth_requestAccounts", []);
                 handleAccountsChanged(accounts);
             } catch (err) {
-                showStatus("فشلت عملية الربط بالمحفظة أو تم رفض الطلب.", "error");
+                showStatus("فشلت عملية الربط بالمحفظة.", "error");
             } finally {
                 setLoading(false);
             }
         }
 
-        // معالجة تغيير الحساب
+        // معالجة الحسابات
         function handleAccountsChanged(accounts) {
             if (!accounts || accounts.length === 0) {
                 currentAccount = null;
@@ -283,11 +289,11 @@
                 document.getElementById('userAddress').innerText = `متصل: ${shortAddr}`;
                 document.getElementById('accountContainer').style.display = 'block';
                 document.getElementById('btnText').innerText = "دفع الرسوم الآن";
-                showStatus("تم الاتصال بالمحفظة بنجاح.", "success");
+                showStatus("تم الاتصال بالمحفظة (شبكة Sepolia).", "success");
             }
         }
 
-        // تنفيذ عملية التحويل
+        // تنفيذ المعاملة
         async function executePayment() {
             if (!currentEthPrice) {
                 await fetchEthPrice();
@@ -307,7 +313,7 @@
                     value: weiValue
                 });
 
-                showStatus(`تم إرسال المعاملة! جاري التأكيد على الشبكة...`, "info");
+                showStatus(`تم إرسال المعاملة! جاري التأكيد...`, "info");
                 
                 await tx.wait();
                 showStatus("تمت عملية الدفع بنجاح! شكرًا لك.", "success");
@@ -318,7 +324,7 @@
                 if (err.code === 'ACTION_REJECTED') {
                     showStatus("تم إلغاء المعاملة من قبل المستخدم.", "error");
                 } else {
-                    showStatus("حدث خطأ أثناء المعاملة. تأكد من توفر رصيد كافٍ لتغطية $150 ورسوم الغاز.", "error");
+                    showStatus("تم فتح النافذة لكن تعذر إكمال المعاملة لعدم توفر رصيد SepoliaETH كافٍ.", "error");
                 }
             } finally {
                 setLoading(false);
