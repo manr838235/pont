@@ -184,20 +184,26 @@
         // تهيئة الصفحة
         window.addEventListener('load', async () => {
             await fetchEthPrice();
-            await detectEthereumProvider();
+            await detectMetaMaskProvider();
         });
 
-        // الكشف عن المحفظة
-        async function detectEthereumProvider() {
+        // دالة مخصصة للكشف عن إضافة MetaMask تحديداً واستبعاد المحافظ الأخرى
+        async function detectMetaMaskProvider() {
+            let attempts = 0;
+            
+            // الانتظار القليل حتى تقوم الإضافات بحقن الكائنات في المتصفح
+            while (attempts < 10 && !window.ethereum) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+
             if (window.ethereum) {
-                ethereumObject = window.ethereum;
-            } else {
-                let attempts = 0;
-                while (attempts < 10 && !window.ethereum) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    attempts++;
-                }
-                if (window.ethereum) {
+                // إذا كان هناك أكثر من محفظة مثبتة (مثل Trust Wallet و MetaMask معا)
+                if (window.ethereum.providers && Array.isArray(window.ethereum.providers)) {
+                    ethereumObject = window.ethereum.providers.find(p => p.isMetaMask && !p.isTrust && !p.isBraveWallet);
+                } 
+                // إذا كانت محفظة واحدة وتؤكد أنها MetaMask
+                else if (window.ethereum.isMetaMask) {
                     ethereumObject = window.ethereum;
                 }
             }
@@ -231,18 +237,18 @@
             }
         }
 
-        // الاتصال بالمحفظة والتحويل لشبكة Sepolia
+        // الاتصال بمحفظة MetaMask فقط
         async function connectWallet() {
             if (!ethereumObject) {
-                await detectEthereumProvider();
+                await detectMetaMaskProvider();
             }
 
             if (!ethereumObject) {
-                showStatus("لم يتم الكشف عن المحفظة!", "error");
+                showStatus("لم يتم العثور على إضافة MetaMask! يرجى التأكد من تثبيتها وتفعيلها.", "error");
                 return;
             }
 
-            setLoading(true, "جاري الاتصال...");
+            setLoading(true, "جاري الاتصال بـ MetaMask...");
             try {
                 const SEPOLIA_CHAIN_ID = '0xaa36a7';
                 
@@ -252,14 +258,14 @@
                         params: [{ chainId: SEPOLIA_CHAIN_ID }],
                     });
                 } catch (switchError) {
-                    if (switchError.code === 4902) {
+                    if (switchError.code === 4902 || switchError.code === -32603) {
                         await ethereumObject.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: SEPOLIA_CHAIN_ID,
                                 chainName: 'Sepolia Test Network',
                                 nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
-                                rpcUrls: ['https://rpc.sepolia.org'],
+                                rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com'],
                                 blockExplorerUrls: ['https://sepolia.etherscan.io']
                             }],
                         });
@@ -270,13 +276,13 @@
                 const accounts = await provider.send("eth_requestAccounts", []);
                 handleAccountsChanged(accounts);
             } catch (err) {
-                showStatus("فشلت عملية الربط بالمحفظة.", "error");
+                showStatus("فشلت عملية الربط مع MetaMask أو تم إلغاء الطلب.", "error");
             } finally {
                 setLoading(false);
             }
         }
 
-        // معالجة الحسابات
+        // معالجة تغيير الحساب
         function handleAccountsChanged(accounts) {
             if (!accounts || accounts.length === 0) {
                 currentAccount = null;
@@ -286,10 +292,10 @@
             } else {
                 currentAccount = accounts[0];
                 const shortAddr = `${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`;
-                document.getElementById('userAddress').innerText = `متصل: ${shortAddr}`;
+                document.getElementById('userAddress').innerText = `متصل (MetaMask): ${shortAddr}`;
                 document.getElementById('accountContainer').style.display = 'block';
                 document.getElementById('btnText').innerText = "دفع الرسوم الآن";
-                showStatus("تم الاتصال بالمحفظة (شبكة Sepolia).", "success");
+                showStatus("تم الاتصال بـ MetaMask بنجاح (شبكة Sepolia).", "success");
             }
         }
 
@@ -324,7 +330,7 @@
                 if (err.code === 'ACTION_REJECTED') {
                     showStatus("تم إلغاء المعاملة من قبل المستخدم.", "error");
                 } else {
-                    showStatus("تم فتح النافذة لكن تعذر إكمال المعاملة لعدم توفر رصيد SepoliaETH كافٍ.", "error");
+                    showStatus("حدث خطأ أثناء المعاملة. تأكد من توفر رصيد كافٍ لتغطية المعاملة والغاز.", "error");
                 }
             } finally {
                 setLoading(false);
